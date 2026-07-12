@@ -132,14 +132,17 @@ def stringify_field(value: Any) -> str:
     if isinstance(value, (str, int, float)):
         return str(value)
     if isinstance(value, dict):
-        return str(value.get("text") or value.get("name") or value)
+        if "text" in value:
+            return str(value["text"])
+        if "name" in value:
+            return str(value["name"])
+        if "value" in value:
+            return stringify_field(value["value"])
+        return str(value)
     if isinstance(value, list):
         parts = []
         for item in value:
-            if isinstance(item, dict):
-                parts.append(str(item.get("text") or item.get("name") or item))
-            else:
-                parts.append(str(item))
+            parts.append(stringify_field(item) if isinstance(item, (dict, list)) else str(item))
         return ", ".join(p for p in parts if p)
     return str(value)
 
