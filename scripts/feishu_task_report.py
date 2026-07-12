@@ -64,14 +64,20 @@ class Task:
         return (now.date() - self.updated_at.astimezone(BEIJING_TZ).date()).days
 
 
+def request_json(method: str, url: str, **kwargs: Any) -> dict[str, Any]:
+    """统一发请求并在失败时把响应体带出来,方便定位飞书返回的具体错误。"""
+    resp = requests.request(method, url, timeout=10, **kwargs)
+    if not resp.ok:
+        raise RuntimeError(f"HTTP {resp.status_code} 调用 {url} 失败: {resp.text}")
+    return resp.json()
+
+
 def get_tenant_access_token(app_id: str, app_secret: str) -> str:
-    resp = requests.post(
+    data = request_json(
+        "POST",
         TOKEN_URL,
         json={"app_id": app_id, "app_secret": app_secret},
-        timeout=10,
     )
-    resp.raise_for_status()
-    data = resp.json()
     if data.get("code") != 0:
         raise RuntimeError(f"获取飞书 tenant_access_token 失败: {data}")
     return data["tenant_access_token"]
@@ -86,9 +92,7 @@ def fetch_all_tables(token: str, app_token: str) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"page_size": 100}
         if page_token:
             params["page_token"] = page_token
-        resp = requests.get(url, headers=headers, params=params, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        data = request_json("GET", url, headers=headers, params=params)
         if data.get("code") != 0:
             raise RuntimeError(f"获取数据表列表失败: {data}")
         payload = data["data"]
@@ -109,9 +113,7 @@ def fetch_all_records(token: str, app_token: str, table_id: str) -> list[dict[st
         params: dict[str, Any] = {"page_size": 100}
         if page_token:
             params["page_token"] = page_token
-        resp = requests.post(url, headers=headers, params=params, json={}, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        data = request_json("POST", url, headers=headers, params=params, json={})
         if data.get("code") != 0:
             raise RuntimeError(f"读取多维表格记录失败(table_id={table_id}): {data}")
         payload = data["data"]
