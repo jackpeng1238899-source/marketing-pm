@@ -1,22 +1,28 @@
 # marketing-pm
 
-自动化任务跟进系统:从飞书多维表格(Bitable)读取数据,生成 Markdown 周报,
-并通过 GitHub Actions 定时执行。目前包含两套独立的报告:
+自动化任务跟进系统,通过 GitHub Actions 定时执行。目前包含三套独立的自动化:
 
 1. **市场部任务跟进周报**(`feishu_task_report.py`)—— 汇总市场部各项目
    表里的任务进度,标记超期未更新的任务
 2. **CRM 客户拜访跟进周报**(`feishu_crm_visit_report.py`)—— 按客户聚合
    拜访记录,标记超过 N 天没有拜访的客户
+3. **医药行业新闻日报**(`pharma_news_digest.py`)—— 每天抓取国内外医药
+   行业新闻,通过 Gmail 发邮件
+
+前两个从飞书多维表格(Bitable)读取数据生成 Markdown 周报并提交回仓库;
+第三个抓取新闻 RSS 并直接发邮件,不落盘到仓库里。
 
 ## 目录结构
 
 ```
 .
-├── .github/workflows/weekly-task-report.yml       # 任务跟进定时任务
-├── .github/workflows/weekly-crm-visit-report.yml  # CRM 拜访跟进定时任务
+├── .github/workflows/weekly-task-report.yml       # 任务跟进定时任务(每周一)
+├── .github/workflows/weekly-crm-visit-report.yml  # CRM 拜访跟进定时任务(每周一)
+├── .github/workflows/daily-pharma-news.yml        # 医药新闻日报定时任务(每天)
 ├── scripts/feishu_common.py                       # 飞书 API 公共辅助函数
 ├── scripts/feishu_task_report.py                  # 任务跟进报告脚本
 ├── scripts/feishu_crm_visit_report.py             # CRM 拜访跟进报告脚本
+├── scripts/pharma_news_digest.py                  # 医药新闻日报脚本
 ├── reports/                                       # 生成的周报(按日期归档 + latest)
 └── requirements.txt
 ```
@@ -56,18 +62,37 @@
 | 拜访结果     | 拜访结果              |
 | 下次跟进事项 | 下次跟进事项 / 下次跟进 |
 
+## 报告三:医药行业新闻日报
+
+新闻来源:
+- 国内:Google News RSS 搜索(医药/创新药/集采等关键词)
+- 国际:FiercePharma、STAT News 的官方 RSS,以及 Google News 英文搜索兜底
+
+只保留最近 26 小时内发布、按标题去重后的新闻,摘要直接使用新闻源自带的
+简介文字(Google News 的 description 本质是"标题+来源"拼接,脚本会自动
+识别并隐藏这种没有信息量的"伪摘要",只展示真正的正文简介)。
+
 ## 配置 GitHub Secrets
 
-在仓库 `Settings > Secrets and variables > Actions` 中添加以下 Secrets
-(在飞书开放平台创建自建应用,并为其开通多维表格读权限后获取):
+在仓库 `Settings > Secrets and variables > Actions` 中添加以下 Secrets:
+
+**飞书相关**(在飞书开放平台创建自建应用,并为其开通多维表格读权限后获取):
 
 | Secret 名称                | 说明                                              |
 | --------------------------- | ------------------------------------------------- |
-| `FEISHU_APP_ID`              | 应用 App ID(两套报告共用)                        |
-| `FEISHU_APP_SECRET`          | 应用 App Secret(两套报告共用)                    |
+| `FEISHU_APP_ID`              | 应用 App ID(两套飞书报告共用)                    |
+| `FEISHU_APP_SECRET`          | 应用 App Secret(两套飞书报告共用)                |
 | `FEISHU_BITABLE_APP_TOKEN`   | 市场部任务跟进用的 Base App Token                 |
 | `FEISHU_TABLE_IDS`（可选）   | 逗号分隔的 table_id 列表;不填则自动读取该 Base 下所有表 |
 | `FEISHU_CRM_APP_TOKEN`       | CRM 拜访跟进用的 Base App Token(跟上面那个不是同一个 Base) |
+
+**Gmail 新闻日报相关**:
+
+| Secret 名称           | 说明                                                          |
+| ---------------------- | --------------------------------------------------------------- |
+| `GMAIL_ADDRESS`        | 发件 Gmail 地址                                                |
+| `GMAIL_APP_PASSWORD`   | Gmail 应用专用密码(在 Google 账号安全设置里生成,不是登录密码,需要先开启两步验证) |
+| `EMAIL_RECIPIENT`      | 收件邮箱地址(可以跟发件邮箱不同)                              |
 
 可选:在 `Settings > Secrets and variables > Actions > Variables` 中添加
 `STALE_DAYS_THRESHOLD`(任务跟进用,默认 7)、`CRM_STALE_DAYS_THRESHOLD`
@@ -88,6 +113,12 @@ python scripts/feishu_task_report.py --stale-days 7
 # CRM 拜访跟进周报
 export FEISHU_BITABLE_APP_TOKEN=yyy   # 换成 CRM 的 App Token
 python scripts/feishu_crm_visit_report.py --stale-days 30
+
+# 医药新闻日报
+export GMAIL_ADDRESS=xxx@gmail.com
+export GMAIL_APP_PASSWORD=xxxx
+export EMAIL_RECIPIENT=yyy@example.com
+python scripts/pharma_news_digest.py
 ```
 
 生成的报告会写入 `reports/` 目录(按日期归档 + latest 文件)。
