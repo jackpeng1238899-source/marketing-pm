@@ -339,6 +339,12 @@ def main() -> int:
         table_id = table.get("table_id")
         table_name = table.get("name") or table_id
         records = fetch_all_records(token, app_token, table_id)
+        if records:
+            print(
+                f"[debug] 表「{table_name}」共 {len(records)} 条记录,字段名: "
+                f"{list(records[0].get('fields', {}).keys())}",
+                file=sys.stderr,
+            )
         tasks.extend(build_tasks(records, table_name))
 
     report = render_report(tasks, args.stale_days, len(selected_tables))
