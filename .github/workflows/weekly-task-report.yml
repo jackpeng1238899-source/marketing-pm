@@ -40,7 +40,16 @@ jobs:
           git add reports/
           if git diff --cached --quiet; then
             echo "No changes to commit"
-          else
-            git commit -m "chore: update weekly task report [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "chore: update weekly task report [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected, rebasing onto latest and retrying ($i/5)..."
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            sleep $((RANDOM % 5 + 1))
+          done
+          echo "Failed to push after retries" >&2
+          exit 1
