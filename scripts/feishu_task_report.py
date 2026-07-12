@@ -322,6 +322,11 @@ def main() -> int:
 
     token = get_tenant_access_token(app_id, app_secret)
     all_tables = fetch_all_tables(token, app_token)
+    print(
+        f"[debug] 该 Base 下共发现 {len(all_tables)} 张表: "
+        f"{[(t.get('name'), t.get('table_id')) for t in all_tables]}",
+        file=sys.stderr,
+    )
 
     if table_ids_env:
         wanted_ids = {t.strip() for t in table_ids_env.split(",") if t.strip()}
