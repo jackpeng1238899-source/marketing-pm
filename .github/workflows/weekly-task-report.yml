@@ -29,7 +29,7 @@ jobs:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_BITABLE_APP_TOKEN: ${{ secrets.FEISHU_BITABLE_APP_TOKEN }}
-          FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
+          FEISHU_TABLE_IDS: ${{ secrets.FEISHU_TABLE_IDS }}
           STALE_DAYS_THRESHOLD: ${{ vars.STALE_DAYS_THRESHOLD }}
         run: python scripts/feishu_task_report.py
 

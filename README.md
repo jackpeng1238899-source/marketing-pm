@@ -15,27 +15,31 @@
 
 ## 飞书表格字段要求
 
-多维表格需包含以下字段(字段名需完全一致):
+脚本会读取 `FEISHU_BITABLE_APP_TOKEN` 指定的 Base 下的数据表,支持**一次读取
+多张表并汇总**。各表字段名不要求完全一致,脚本按关键词自动识别:
 
-| 字段名   | 说明               |
-| -------- | ------------------ |
-| 任务名称 | 任务标题           |
-| 负责人   | 人员字段           |
-| 进度     | 数字/单选均可      |
-| 更新日期 | 日期字段           |
-| 备注     | 文本字段           |
+| 用途     | 匹配关键词(字段名包含其一即可)                     | 缺失时的兜底逻辑                         |
+| -------- | --------------------------------------------------- | ------------------------------------------ |
+| 任务名称 | 任务名称 / 任务 / 标题                               | 该记录跳过(视为非任务行)                 |
+| 负责人   | 负责人                                                | 显示"(未分配)"                           |
+| 进度     | 进度 / 状态                                           | 用"实际完成时间/实际开始时间"推断已完成/进行中/未开始 |
+| 更新日期 | 更新日期 / 更新时间                                   | 依次尝试实际完成时间→实际开始时间→计划结束时间 |
+| 备注     | 备注 / 说明                                           | 留空                                       |
+
+默认会自动读取该 Base 下**所有数据表**;如果只想读取指定的几张表,设置
+`FEISHU_TABLE_IDS`(逗号分隔的 table_id 列表)即可。
 
 ## 配置 GitHub Secrets
 
 在仓库 `Settings > Secrets and variables > Actions` 中添加以下 Secrets
 (在飞书开放平台创建自建应用,并为其开通多维表格读权限后获取):
 
-| Secret 名称                | 说明                                    |
-| --------------------------- | --------------------------------------- |
-| `FEISHU_APP_ID`              | 应用 App ID                             |
-| `FEISHU_APP_SECRET`          | 应用 App Secret                         |
-| `FEISHU_BITABLE_APP_TOKEN`   | 多维表格 App Token(表格 URL 中获取)     |
-| `FEISHU_TABLE_ID`            | 数据表 Table ID(表格 URL 中获取)        |
+| Secret 名称                | 说明                                              |
+| --------------------------- | ------------------------------------------------- |
+| `FEISHU_APP_ID`              | 应用 App ID                                       |
+| `FEISHU_APP_SECRET`          | 应用 App Secret                                   |
+| `FEISHU_BITABLE_APP_TOKEN`   | 多维表格 Base 的 App Token(表格 URL 中获取)       |
+| `FEISHU_TABLE_IDS`（可选）   | 逗号分隔的 table_id 列表;不填则自动读取该 Base 下所有表 |
 
 可选:在 `Settings > Secrets and variables > Actions > Variables` 中添加
 `STALE_DAYS_THRESHOLD`(整数,默认 7),用于配置多少天未更新算作需要关注。
@@ -48,7 +52,7 @@ pip install -r requirements.txt
 export FEISHU_APP_ID=xxx
 export FEISHU_APP_SECRET=xxx
 export FEISHU_BITABLE_APP_TOKEN=xxx
-export FEISHU_TABLE_ID=xxx
+export FEISHU_TABLE_IDS=xxx,yyy   # 可选,不填则读取该 Base 下所有表
 
 python scripts/feishu_task_report.py --stale-days 7
 ```
