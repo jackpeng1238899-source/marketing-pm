@@ -29,7 +29,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 FEISHU_HOST = "https://open.feishu.cn"
-TOKEN_URL = f"{FEISHU_HOST}/open-api/auth/v3/tenant_access_token/internal"
+TOKEN_URL = f"{FEISHU_HOST}/open-apis/auth/v3/tenant_access_token/internal"
 TABLES_URL_TMPL = f"{FEISHU_HOST}/open-apis/bitable/v1/apps/{{app_token}}/tables"
 RECORDS_URL_TMPL = f"{FEISHU_HOST}/open-apis/bitable/v1/apps/{{app_token}}/tables/{{table_id}}/records/search"
 
